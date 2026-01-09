@@ -1,16 +1,21 @@
-import 'dart:math';
+import 'dart:math'; // Pour les calculs aléatoires (Random) et géométriques (sin, pi)
 import 'package:flutter/material.dart';
 
 /* =========================
-   LANGUE (simple, DartPad)
+   GESTION DE LA LANGUE
 ========================= */
 
+// Enumération simple pour définir les langues disponibles
 enum Lang { fr, en }
+
+// Variable globale stockant la langue actuelle (par défaut Français)
 Lang currentLang = Lang.fr;
+
+// Fonction utilitaire de traduction : renvoie la chaîne 'fr' ou 'en' selon la langue active
 String tr(String fr, String en) => currentLang == Lang.fr ? fr : en;
 
 /* =========================
-   MAIN
+   POINT D'ENTRÉE (MAIN)
 ========================= */
 
 void main() => runApp(const BowlingApp());
@@ -23,26 +28,30 @@ class BowlingApp extends StatefulWidget {
 }
 
 class _BowlingAppState extends State<BowlingApp> {
+  // Fonction pour changer la langue et rafraîchir toute l'app (setState)
   void setLang(Lang l) => setState(() => currentLang = l);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: false, // Cache le bandeau "Debug"
       title: 'UltraBowling',
+      // Thème sombre global pour coller à l'esthétique Néon
       theme: ThemeData(
         brightness: Brightness.dark,
         useMaterial3: true,
       ),
+      // On passe la fonction de changement de langue à la première page
       home: FirstPage(onLangChange: setLang),
     );
   }
 }
 
 /* =========================
-   UI HELPERS (NEON)
+   UI HELPERS (STYLE NÉON)
 ========================= */
 
+// Widget de fond animé avec une grille mouvante style "Synthwave"
 class NeonBackground extends StatefulWidget {
   final Widget child;
   const NeonBackground({super.key, required this.child});
@@ -58,26 +67,28 @@ class _NeonBackgroundState extends State<NeonBackground>
   @override
   void initState() {
     super.initState();
+    // Animation en boucle de 6 secondes pour l'effet de mouvement
     _c = AnimationController(vsync: this, duration: const Duration(seconds: 6))
       ..repeat();
   }
 
   @override
   void dispose() {
-    _c.dispose();
+    _c.dispose(); // Toujours nettoyer les contrôleurs
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: _c,
+      animation: _c, // Reconstruit le widget à chaque tick de l'animation
       builder: (_, __) {
-        final t = _c.value;
+        final t = _c.value; // Valeur de 0.0 à 1.0
         return Container(
+          // Dégradé de fond sombre (bleu nuit / violet) qui change légèrement avec 't'
           decoration: BoxDecoration(
             gradient: LinearGradient(
-              begin: Alignment(-1.0 + 2.0 * t, -1),
+              begin: Alignment(-1.0 + 2.0 * t, -1), // Le dégradé bouge
               end: Alignment(1.0 - 2.0 * t, 1),
               colors: const [
                 Color(0xFF0A0F2C),
@@ -88,12 +99,14 @@ class _NeonBackgroundState extends State<NeonBackground>
           ),
           child: Stack(
             children: [
+              // La grille dessinée par dessus le fond
               Positioned.fill(
                 child: Opacity(
-                  opacity: 0.10,
+                  opacity: 0.10, // Très subtil
                   child: CustomPaint(painter: _GridPainter(progress: t)),
                 ),
               ),
+              // Le contenu réel de la page (boutons, jeu, etc.)
               SafeArea(child: widget.child),
             ],
           ),
@@ -103,6 +116,7 @@ class _NeonBackgroundState extends State<NeonBackground>
   }
 }
 
+// Peintre personnalisé pour dessiner la grille perspective
 class _GridPainter extends CustomPainter {
   final double progress;
   _GridPainter({required this.progress});
@@ -113,9 +127,10 @@ class _GridPainter extends CustomPainter {
       ..color = Colors.cyanAccent.withOpacity(0.25)
       ..strokeWidth = 1;
 
-    final step = 28.0;
-    final offset = (progress * step);
+    final step = 28.0; // Espacement des lignes
+    final offset = (progress * step); // Décalage pour créer le mouvement
 
+    // Dessin des lignes verticales et horizontales
     for (double x = -step + offset; x < size.width + step; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), p);
     }
@@ -126,17 +141,19 @@ class _GridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _GridPainter oldDelegate) =>
-      oldDelegate.progress != progress;
+      oldDelegate.progress != progress; // Redessine si l'animation avance
 }
 
+// Widget pour encadrer le contenu (Effet verre + bordure néon)
 Widget neonCard({required Widget child}) {
   return Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFF0D1538).withOpacity(0.65),
+      color: const Color(0xFF0D1538).withOpacity(0.65), // Fond semi-transparent
       borderRadius: BorderRadius.circular(18),
       border: Border.all(color: Colors.cyanAccent.withOpacity(0.35), width: 1.2),
       boxShadow: [
+        // Lueur externe (Glow effect)
         BoxShadow(
           color: Colors.cyanAccent.withOpacity(0.18),
           blurRadius: 18,
@@ -148,10 +165,11 @@ Widget neonCard({required Widget child}) {
   );
 }
 
+// Bouton stylisé avec effet de lueur
 Widget neonButton({
   required String text,
   required VoidCallback? onPressed,
-  Color glow = Colors.cyanAccent,
+  Color glow = Colors.cyanAccent, // Couleur de la lueur paramétrable
 }) {
   return SizedBox(
     width: 280,
@@ -475,35 +493,43 @@ class PlayersPage extends StatelessWidget {
 }
 
 /* =========================
-   SCORING BOWLING RÉEL (10 frames)
+   SCORING BOWLING RÉEL
 ========================= */
 
 int scoreFromRolls(List<int> rolls) {
   int score = 0;
-  int rollIndex = 0;
+  int rollIndex = 0; // Pointeur pour parcourir la liste des lancers
 
+  // Une partie standard a 10 frames (manches)
   for (int frame = 0; frame < 10; frame++) {
-    if (rollIndex >= rolls.length) break;
+    if (rollIndex >= rolls.length) break; // Arrêt si pas assez de lancers joués
 
     final int first = rolls[rollIndex];
 
+    // CAS 1: STRIKE (10 quilles au 1er lancer)
     if (first == 10) {
+      // Le score est 10 + les 2 prochains lancers (bonus)
       final int b1 = (rollIndex + 1 < rolls.length) ? rolls[rollIndex + 1] : 0;
       final int b2 = (rollIndex + 2 < rolls.length) ? rolls[rollIndex + 2] : 0;
       score += 10 + b1 + b2;
-      rollIndex += 1;
-    } else {
-      final int second =
-          (rollIndex + 1 < rolls.length) ? rolls[rollIndex + 1] : 0;
+      rollIndex += 1; // On avance d'un seul index car le strike termine la frame
+    } 
+    // CAS 2: Pas Strike
+    else {
+      final int second = (rollIndex + 1 < rolls.length) ? rolls[rollIndex + 1] : 0;
       final int frameSum = first + second;
 
+      // CAS 2A: SPARE (Total = 10)
       if (frameSum == 10) {
+        // Le score est 10 + le prochain lancer (bonus)
         final int b = (rollIndex + 2 < rolls.length) ? rolls[rollIndex + 2] : 0;
         score += 10 + b;
-      } else {
+      } 
+      // CAS 2B: FRAME OUVERTE (Total < 10)
+      else {
         score += frameSum;
       }
-      rollIndex += 2;
+      rollIndex += 2; // On avance de deux index (2 lancers par frame)
     }
   }
 
@@ -533,29 +559,34 @@ class BowlingGamePage extends StatefulWidget {
 
 class _BowlingGamePageState extends State<BowlingGamePage>
     with SingleTickerProviderStateMixin {
+  
+  // -- CONSTANTES & OUTILS --
   static const int totalPins = 10;
   final Random rnd = Random();
 
-  late List<bool> pins;
+  // -- ÉTAT DES QUILLES --
+  late List<bool> pins; // true = debout, false = tombée
   int pinsStanding = totalPins;
 
-  int frame = 0; // 0..9
+  // -- ÉTAT DU JEU --
+  int frame = 0; // 0..9 (pour 1..10)
   int currentPlayer = 0;
-  int throwInFrame = 1;
+  int throwInFrame = 1; // Lancer 1, 2 (ou 3 à la fin)
 
+  // Variables spéciales pour la 10ème frame
   int firstRollIn10th = -1;
   int secondRollIn10th = -1;
 
+  // Historique des lancers pour le calcul des scores
   late List<List<int>> rollsByPlayer;
 
-  String overlay = "";
+  // -- INTERFACE --
+  String overlay = ""; // Texte "STRIKE" ou "SPARE"
   double overlayOpacity = 0.0;
+  bool locked = false; // Bloque les boutons pendant l'animation
+  double testSlider = 0; // Slider pour le mode test
 
-  bool locked = false;
-
-  double testSlider = 0;
-
-  // Animation boule
+  // -- ANIMATION BOULE --
   late AnimationController ballC;
   bool ballVisible = false;
   Offset ballStart = Offset.zero;
@@ -568,12 +599,13 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     pins = List.generate(totalPins, (_) => true);
     rollsByPlayer = List.generate(widget.nbPlayers, (_) => <int>[]);
 
+    // Configuration de l'animation de la boule (520ms)
     ballC = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 520),
     )..addStatusListener((s) {
         if (s == AnimationStatus.completed) {
-          // On coupe l’affichage de la boule à la fin (sans bloquer l’UI)
+          // Cache la boule quand l'animation est finie
           if (!mounted) return;
           setState(() => ballVisible = false);
         }
@@ -586,11 +618,13 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     super.dispose();
   }
 
+  // Remet toutes les quilles debout
   void _resetPinsFull() {
     pins = List.generate(totalPins, (_) => true);
     pinsStanding = totalPins;
   }
 
+  // Affiche un texte géant (STRIKE/SPARE) temporairement
   void _showOverlay(String msg) {
     setState(() {
       overlay = msg;
@@ -602,6 +636,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     });
   }
 
+  // Petit délai pour éviter les clics frénétiques
   Future<void> _lockTransition({int ms = 520}) async {
     try {
       await Future.delayed(Duration(milliseconds: ms));
@@ -614,6 +649,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
   bool get _isGameOver => frame >= 10;
   int _totalScore(int player) => scoreFromRolls(rollsByPlayer[player]);
 
+  // Réinitialise tout pour une nouvelle partie
   void _newGame() {
     setState(() {
       frame = 0;
@@ -632,11 +668,12 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     });
   }
 
+  // Passe au joueur suivant
   void _advanceTurn() {
     currentPlayer++;
     if (currentPlayer >= widget.nbPlayers) {
       currentPlayer = 0;
-      frame++;
+      frame++; // Nouvelle manche si tous les joueurs ont joué
     }
 
     throwInFrame = 1;
@@ -646,13 +683,13 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     _resetPinsFull();
   }
 
-  // Fait tomber "knocked" quilles debout (sélection aléatoire réaliste)
+  // Simule la physique : fait tomber 'knocked' quilles parmi celles debout
   void _applyKnockdown(int knocked) {
     final standingIdx = <int>[];
     for (int i = 0; i < pins.length; i++) {
       if (pins[i]) standingIdx.add(i);
     }
-    standingIdx.shuffle(rnd);
+    standingIdx.shuffle(rnd); // Aléatoire pour ne pas toujours faire tomber les mêmes
 
     for (int k = 0; k < knocked && k < standingIdx.length; k++) {
       pins[standingIdx[k]] = false;
@@ -660,6 +697,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     pinsStanding = pins.where((p) => p).length;
   }
 
+  // Décide combien de quilles tombent (Aléatoire ou Slider)
   int _getKnocked() {
     if (widget.isTestMode) {
       return testSlider.round().clamp(0, pinsStanding);
@@ -667,6 +705,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     return rnd.nextInt(pinsStanding + 1);
   }
 
+  // Trouve qui a le meilleur score
   int _winnerIndex() {
     int best = 0;
     int bestScore = -999999;
@@ -680,35 +719,39 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     return best;
   }
 
-  // Déclenche animation boule, puis applique chute, puis avance logique bowling
+  /// =========================================================
+  /// CŒUR DU JEU : Action de lancer la boule
+  /// =========================================================
   Future<void> _roll(Size pinAreaSize) async {
     if (locked || _isGameOver) return;
     if (pinsStanding <= 0) return;
 
-    setState(() => locked = true);
+    setState(() => locked = true); // Verrouillage UI
 
     final int knocked = _getKnocked();
 
-    // Prépare trajectoire de la boule : bas -> triangle (centre)
-    // On varie légèrement la courbure en normal mode, stable en test mode
+    // Calcul de la trajectoire (bas vers le centre des quilles)
     final double w = pinAreaSize.width;
     final double h = pinAreaSize.height;
 
     ballStart = Offset(w * 0.50, h * 0.96);
     ballEnd = Offset(w * 0.50, h * 0.36);
 
+    // Courbe aléatoire légère pour le réalisme
     ballCurve = widget.isTestMode ? 0.0 : (rnd.nextDouble() * 2 - 1) * 0.25;
 
+    // Début animation
     setState(() {
       ballVisible = true;
       ballC.reset();
       ballC.forward();
     });
 
-    // On attend la fin de l’animation avant de faire tomber
+    // On attend que la boule arrive au bout (520ms)
     await Future.delayed(ballC.duration ?? const Duration(milliseconds: 520));
     if (!mounted) return;
 
+    // Application du résultat (chute des quilles)
     setState(() {
       _applyKnockdown(knocked);
       rollsByPlayer[currentPlayer].add(knocked);
@@ -717,8 +760,9 @@ class _BowlingGamePageState extends State<BowlingGamePage>
 
     final bool allDown = pinsStanding == 0;
 
-    // Frames 1..9
+    // --- GESTION FRAMES 1 à 9 ---
     if (frame < 9) {
+      // Strike
       if (throwInFrame == 1 && knocked == 10) {
         _showOverlay(tr("STRIKE", "STRIKE"));
         await _lockTransition(ms: 520);
@@ -727,12 +771,14 @@ class _BowlingGamePageState extends State<BowlingGamePage>
         return;
       }
 
+      // 1er lancer simple
       if (throwInFrame == 1) {
         setState(() => throwInFrame = 2);
         setState(() => locked = false);
         return;
       }
 
+      // 2ème lancer (Spare ou trou)
       if (allDown) _showOverlay(tr("SPARE", "SPARE"));
       await _lockTransition(ms: 520);
       if (!mounted) return;
@@ -740,16 +786,15 @@ class _BowlingGamePageState extends State<BowlingGamePage>
       return;
     }
 
-    // Frame 10
+    // --- GESTION FRAME 10 (Règles spéciales) ---
     if (throwInFrame == 1) {
       firstRollIn10th = knocked;
-
-      if (knocked == 10) {
+      if (knocked == 10) { // Strike au 1er coup
         _showOverlay(tr("STRIKE", "STRIKE"));
         await _lockTransition(ms: 520);
         if (!mounted) return;
         setState(() {
-          _resetPinsFull();
+          _resetPinsFull(); // On remet les quilles pour le bonus
           throwInFrame = 2;
         });
         return;
@@ -764,7 +809,6 @@ class _BowlingGamePageState extends State<BowlingGamePage>
 
     if (throwInFrame == 2) {
       secondRollIn10th = knocked;
-
       final bool strikeFirst = firstRollIn10th == 10;
       final bool spare = !strikeFirst && (firstRollIn10th + secondRollIn10th == 10);
 
@@ -773,7 +817,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
         await _lockTransition(ms: 520);
         if (!mounted) return;
         setState(() {
-          _resetPinsFull();
+          _resetPinsFull(); // On remet les quilles si strike
           throwInFrame = 3;
           locked = false;
         });
@@ -785,65 +829,54 @@ class _BowlingGamePageState extends State<BowlingGamePage>
         await _lockTransition(ms: 520);
         if (!mounted) return;
         setState(() {
-          _resetPinsFull();
+          _resetPinsFull(); // Bonus shot pour spare
           throwInFrame = 3;
           locked = false;
         });
         return;
       }
 
+      // Fin de partie si pas de bonus
       await _lockTransition(ms: 520);
       if (!mounted) return;
       setState(() => _advanceTurn());
       return;
     }
 
-    // throw 3
+    // 3ème lancer (bonus frame 10)
     await _lockTransition(ms: 520);
     if (!mounted) return;
     setState(() => _advanceTurn());
   }
 
-  // Positions triangle (10 quilles): 4-3-2-1
-  // Index: on les place visuellement en triangle, l’ordre des pins[] n’a pas d’importance.
+  /// Coordonnées normalisées pour placer les quilles en triangle
   List<Offset> _triangleNormalized() {
-    // Coordonnées normalisées dans un rectangle [0..1]
-    // y vers le haut (0 top, 1 bottom)
-    // Rangées : 4 en bas, puis 3, puis 2, puis 1 en haut
-    // On centre chaque rangée.
     return [
-      // Row 1 (top) : 1
+      // Rangée 1 (Haut)
       const Offset(0.50, 0.22),
-
-      // Row 2 : 2
-      const Offset(0.44, 0.34),
-      const Offset(0.56, 0.34),
-
-      // Row 3 : 3
-      const Offset(0.38, 0.48),
-      const Offset(0.50, 0.48),
-      const Offset(0.62, 0.48),
-
-      // Row 4 (bottom) : 4
-      const Offset(0.32, 0.64),
-      const Offset(0.44, 0.64),
-      const Offset(0.56, 0.64),
-      const Offset(0.68, 0.64),
+      // Rangée 2
+      const Offset(0.44, 0.34), const Offset(0.56, 0.34),
+      // Rangée 3
+      const Offset(0.38, 0.48), const Offset(0.50, 0.48), const Offset(0.62, 0.48),
+      // Rangée 4 (Bas)
+      const Offset(0.32, 0.64), const Offset(0.44, 0.64), const Offset(0.56, 0.64), const Offset(0.68, 0.64),
     ];
   }
 
+  /// Widget pour une quille individuelle
   Widget _pinWidget(bool up) {
     return AnimatedScale(
       duration: const Duration(milliseconds: 220),
-      scale: up ? 1.0 : 0.82,
+      scale: up ? 1.0 : 0.82, // Rétrécit si tombée
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 220),
-        opacity: up ? 1.0 : 0.18,
+        opacity: up ? 1.0 : 0.18, // Devient transparente si tombée
         child: Container(
           width: 22,
           height: 62,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
+            // Dégradé rouge/rose si debout, sombre si couchée
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -869,6 +902,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
     );
   }
 
+  /// Widget qui dessine la boule (via AnimationController)
   Widget _ballPainter(Size size) {
     return AnimatedBuilder(
       animation: ballC,
@@ -877,11 +911,11 @@ class _BowlingGamePageState extends State<BowlingGamePage>
 
         final t = Curves.easeInOut.transform(ballC.value);
 
-        // Trajectoire courbe simple : interpolation + courbe latérale
+        // Interpolation de la position + Courbe sinusoïdale
         final x = ballStart.dx + (ballEnd.dx - ballStart.dx) * t + sin(t * pi) * (size.width * ballCurve);
         final y = ballStart.dy + (ballEnd.dy - ballStart.dy) * t;
 
-        final r = 10.0 + 4.0 * (1 - t); // légère variation de taille
+        final r = 10.0 + 4.0 * (1 - t); // La boule rétrécit légèrement avec la perspective
         return Positioned(
           left: x - r,
           top: y - r,
@@ -890,7 +924,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
             height: r * 2,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFF7CFFEA),
+              color: const Color(0xFF7CFFEA), // Couleur Cyan
               boxShadow: [
                 BoxShadow(
                   color: Colors.cyanAccent.withOpacity(0.55),
@@ -913,12 +947,14 @@ class _BowlingGamePageState extends State<BowlingGamePage>
   Widget build(BuildContext context) {
     final bool isOver = _isGameOver;
 
+    // Texte d'en-tête (Status)
     final String header = isOver
         ? tr("Partie terminée", "Game over")
         : "${tr("Manche", "Frame")} ${frame + 1}/10 · ${tr("Joueur", "Player")} ${currentPlayer + 1} · ${tr("Lancer", "Throw")} $throwInFrame";
 
     final int standing = pinsStanding.clamp(0, totalPins);
 
+    // Valeurs pour le slider (Mode Test)
     final double maxSlider = standing.toDouble();
     final double safeSlider = testSlider.clamp(0.0, maxSlider);
 
@@ -952,6 +988,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // 1. En-tête Statut
                             Text(
                               header,
                               textAlign: TextAlign.center,
@@ -962,7 +999,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                             ),
                             const SizedBox(height: 12),
 
-                            // Scores (cumul bowling réel)
+                            // 2. Tableau des scores
                             Wrap(
                               alignment: WrapAlignment.center,
                               spacing: 12,
@@ -1002,6 +1039,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
 
                             const SizedBox(height: 14),
 
+                            // 3. Zone Centrale (Fin de jeu ou Jeu actif)
                             if (isOver)
                               Column(
                                 children: [
@@ -1024,6 +1062,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                             else
                               Column(
                                 children: [
+                                  // Mode Test : Slider pour tricher/tester
                                   if (widget.isTestMode) ...[
                                     Text(
                                       "${tr("Quilles à faire tomber", "Pins to knock")}: ${safeSlider.round()} / $standing",
@@ -1046,17 +1085,12 @@ class _BowlingGamePageState extends State<BowlingGamePage>
 
                                   const SizedBox(height: 6),
 
-                                 
-
-                                  
-
-                                  // Zone quilles + boule (triangle + animation)
+                                  // Zone PISTE + QUILLES + BOULE
                                   LayoutBuilder(
                                     builder: (context, constraints) {
                                       final areaW = min(constraints.maxWidth, 520.0);
                                       final areaH = 260.0;
-                                      final double pinsYOffset = 40; // ajuste 30–60 selon ton goût
-
+                                      final double pinsYOffset = 40;
 
                                       return Center(
                                         child: SizedBox(
@@ -1065,7 +1099,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                                           child: Stack(
                                             clipBehavior: Clip.none,
                                             children: [
-                                              // Piste
+                                              // A. Fond de la piste
                                               Positioned.fill(
                                                 child: Container(
                                                   decoration: BoxDecoration(
@@ -1086,7 +1120,7 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                                                 ),
                                               ),
 
-                                              // Quilles en triangle
+                                              // B. Les Quilles (boucle)
                                               for (int i = 0; i < totalPins; i++)
                                                 Positioned(
                                                   left: areaW * triangle[i].dx - 11,
@@ -1094,10 +1128,10 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                                                   child: _pinWidget(pins[i]),
                                                 ),
 
-                                              // Boule animée (dessinée)
+                                              // C. La Boule animée
                                               _ballPainter(Size(areaW, areaH)),
 
-                                              // Bouton par-dessus, mais sans bloquer la boule
+                                              // D. Bouton d'action (Lancer)
                                               Positioned(
                                                 left: 0,
                                                 right: 0,
@@ -1130,9 +1164,9 @@ class _BowlingGamePageState extends State<BowlingGamePage>
                     ],
                   ),
 
-                  // Overlay STRIKE / SPARE (ne bloque pas les clics)
+                  // 4. Overlay STRIKE / SPARE (Texte flottant)
                   IgnorePointer(
-                    ignoring: true,
+                    ignoring: true, // Permet de cliquer à travers
                     child: Center(
                       child: AnimatedOpacity(
                         opacity: overlayOpacity,
