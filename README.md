@@ -17,5 +17,25 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 # UltraBowling
-Application Flutter de simulation de bowling interactif
+
+UltraBowling est une application Flutter de simulation de bowling interactif,
+développée dans le cadre d’un projet d’école d’ingénieur.
+
+## Fonctionnalités principales
+- Mode solo et multijoueur
+- Mode normal et mode test
+- Gestion réaliste des scores (strikes et spares)
+- Interface animée (quilles, boule, effets visuels)
+- Support multilingue (français / anglais)
+
+## Technologies utilisées
+- Flutter (Dart)
+- Animations natives Flutter
+- Architecture Stateful / Stateless Widgets
+
+## Lancement du projet
+```bash
+flutter pub get
+flutter run
+
 
